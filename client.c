@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <signal.h>
-
+#include <termios.h>
 
 //size of each used buffer
 #define BUFFER_SIZE 1000
@@ -16,8 +16,9 @@ char buffer[BUFFER_SIZE];
 //name of the named pipe used by server
 char * serverPipe = "serverin";
 
-//username aand password
+//username and password
 char username[BUFFER_SIZE],password[BUFFER_SIZE];
+char * pass = NULL;
 
 //stream for comuninacting with server
 FILE * server;
@@ -57,6 +58,34 @@ void receive_messages(){
     }
 }
 
+void getpassword(char * message)
+{
+    printf("%s\n",message);
+    static struct termios oldt, newt;
+    int i = 0;
+    int c;
+
+    //saving the old settings of STDIN_FILENO and copy settings for resetting
+    tcgetattr( STDIN_FILENO, &oldt);
+    newt = oldt;
+
+    //setting the approriate bit in the termios struct
+    newt.c_lflag &= ~(ECHO);          
+
+    //setting the new bits
+    tcsetattr( STDIN_FILENO, TCSANOW, &newt);
+
+    //reading the password from the console
+    while ((c = getchar())!= '\n' && c != EOF && i < BUFFER_SIZE){
+        password[i++] = c;
+    }
+    password[i] = '\0';
+
+    /*resetting our old STDIN_FILENO*/ 
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
+
+}
+
 //login user to server
 void login(){
     
@@ -67,8 +96,7 @@ void login(){
     while(!logged && tries<3){
 
         //get password
-        printf("Password: ");
-        scanf("%s",password);
+        getpassword("Password: ");
 
         //send username and password to server
         server = fopen(serverPipe, "w");
@@ -153,10 +181,22 @@ void query_send_message(){
     fgets(message,BUFFER_SIZE,stdin);
     message[strlen(message)-1]='\0';
 
-    //send message to server
-    server = fopen(serverPipe,"w");
-    fprintf(server,"3|%s|%s|%s",username,name,message);
-    fclose(server);
+    //parse username
+
+    char * newname = name;
+    char * pos=strchr(newname,' ');
+    while(1){
+        if(pos!=NULL)
+            pos[0]='\0';
+        //send message to server
+        server = fopen(serverPipe,"w");
+        fprintf(server,"3|%s|%s|%s\n",username,newname,message);
+        fclose(server);
+        if(pos==NULL)
+            break;
+        newname=pos+1;
+        pos=strchr(newname,' ');
+    }
 
 }
 
