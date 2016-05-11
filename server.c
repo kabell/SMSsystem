@@ -6,6 +6,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include<signal.h>
+#include <termios.h>
+
 
 #define SERVER_CAPACITY 10
 #define BUFFER_SIZE 1000
@@ -23,8 +25,40 @@ char * inPipe = "serverin";
 //named pipe for input
 FILE * in;
 
+//file for identify running server
+char * serverLock = "server.lock";
+
 //logged users
 user_t * users_logged[SERVER_CAPACITY];
+
+
+void getpassword(char * message, char * password)
+{
+    printf("%s\n",message);
+    static struct termios oldt, newt;
+    int i = 0;
+    int c;
+
+    //saving the old settings of STDIN_FILENO and copy settings for resetting
+    tcgetattr( STDIN_FILENO, &oldt);
+    newt = oldt;
+
+    //setting the approriate bit in the termios struct
+    newt.c_lflag &= ~(ECHO);
+
+    //setting the new bits
+    tcsetattr( STDIN_FILENO, TCSANOW, &newt);
+
+    //reading the password from the console
+    while ((c = getchar())!= '\n' && c != EOF && i < BUFFER_SIZE){
+        password[i++] = c;
+    }
+    password[i] = '\0';
+
+    /*resetting our old STDIN_FILENO*/
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
+
+}
 
 
 //send any message to user
@@ -281,6 +315,7 @@ void server_quit(){
     //destroy named pipe
     fclose(in);
     unlink(inPipe);
+    remove(serverLock);
     //exit program
     exit(0);
 }
@@ -314,12 +349,9 @@ int main(int argc, char ** argv){
         char password[BUFFER_SIZE],password1[BUFFER_SIZE];
         
         //ask for password
-        printf("Password: ");
-        scanf("%s",password);
-
+        getpassword("Password: ",password);
         //ask for password again
-        printf("Retype password: ");
-        scanf("%s",password1);
+        getpassword("Retype password: ",password1);
         
         //if passwords are same
         if(!strcmp(password,password1)){
@@ -336,6 +368,20 @@ int main(int argc, char ** argv){
         //exiting
         return 0;
     }
+
+    //check for running server
+    FILE * f = fopen(serverLock,"r");
+    if(f){
+        printf("Another instance of server is running !!!\n");
+        fclose(f);
+        return 0;
+    }
+
+    //create server.lock
+    f = fopen(serverLock,"w");
+    fclose(f);
+
+
 
     //print message to server console
     printf("To quit press q and then enter.\n");

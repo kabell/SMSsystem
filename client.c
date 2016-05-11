@@ -16,6 +16,9 @@ char buffer[BUFFER_SIZE];
 //name of the named pipe used by server
 char * serverPipe = "serverin";
 
+//serverLock name
+char * serverLock = "server.lock";
+
 //username and password
 char username[BUFFER_SIZE],password[BUFFER_SIZE];
 char * pass = NULL;
@@ -265,6 +268,15 @@ int main(int argc, char ** argv){
         printf("Usage: ./client username\n");
         return 0;
     }
+
+    //check for server running
+    
+    FILE * f = fopen(serverLock,"r");
+    if(!f){
+        printf("Server is not running !!!!");
+        return 0;
+    }
+    fclose(f);
 
     //get username from argv
     strcpy(username,argv[1]);
