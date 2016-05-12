@@ -23,7 +23,7 @@ typedef struct {
 char * inPipe = "serverin";
 
 //named pipe for input
-FILE * in;
+FILE * in = NULL;
 
 //file for identify running server
 char * serverLock = "server.lock";
@@ -97,7 +97,7 @@ int user_auth(user_t * user){
 
 
 //login user - add user to list of logged in users
-void user_login(user_t * user){
+int user_login(user_t * user){
     
     //find empty index
     int pos = 0;
@@ -114,6 +114,7 @@ void user_login(user_t * user){
 
     //send message to user - login OK
     message_send(user,"1");    
+    return 1;
 
 }
 
@@ -190,7 +191,9 @@ void server_parse_input(char * message){
         //authentificate used
         if(user_auth(user)){
             //and log in him
-            user_login(user);
+            if(!user_login(user)){
+                message_send(user,"User already logged in\n");
+            }
         }
         //wrong credentials
         else{
@@ -277,22 +280,6 @@ void server_parse_input(char * message){
 
 }
 
-
-//initialize server
-void server_init(){
-
-    //create named pipe for server input
-    mkfifo(inPipe,0666);
-
-    //open named pipe for input
-    in = fopen(inPipe, "r");
-    
-    //prepare memory for logged users
-    for(int i=0; i<SERVER_CAPACITY; i++){
-        users_logged[i] = NULL;
-    }
-}
-
 //quit server - send message to all logged users - to force log out
 void server_quit(){
 
@@ -313,19 +300,36 @@ void server_quit(){
     //wait for deliver all messages
     sleep(1);
     //destroy named pipe
-    fclose(in);
+    if(in)
+        fclose(in);
     unlink(inPipe);
     remove(serverLock);
     //exit program
     exit(0);
 }
 
-//run server - waiting for queries from pipe
-void server_run(){
 
+
+//initialize server
+void server_init(){
+    
     //add signal for quit when q is pressed in the another process
     signal(SIGTERM, server_quit);
 
+    //create named pipe for server input
+    mkfifo(inPipe,0666);
+
+    //open named pipe for input
+    in = fopen(inPipe, "r");
+    
+    //prepare memory for logged users
+    for(int i=0; i<SERVER_CAPACITY; i++){
+        users_logged[i] = NULL;
+    }
+}
+
+//run server - waiting for queries from pipe
+void server_run(){
     //processign queries
     char buffer[BUFFER_SIZE];
     while(1){
@@ -346,8 +350,34 @@ int main(int argc, char ** argv){
 
     //if is given parameters for add user
     if(argc>2){
+
+        //check for username in login file
+        FILE * login_file = fopen("login","r");
+        if(login_file){
+            //find given username in login file
+            char username[BUFFER_SIZE],password[BUFFER_SIZE];
+            while(fgets(username,BUFFER_SIZE,login_file)!=NULL){
+                fgets(password,BUFFER_SIZE,login_file);
+                username[strlen(username)-1]='\0';
+                password[strlen(password)-1]='\0';
+
+                //if we found suitable username and password credentials are OK
+                if(!strcmp(argv[2],username)){
+                    printf("Username already exists !!!!\n");
+                    fclose(login_file);
+                    return 0;
+                }
+                    
+            }
+
+
+
+            fclose(login_file);
+        }
+
+
         char password[BUFFER_SIZE],password1[BUFFER_SIZE];
-        
+
         //ask for password
         getpassword("Password: ",password);
         //ask for password again

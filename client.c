@@ -273,13 +273,23 @@ int main(int argc, char ** argv){
     
     FILE * f = fopen(serverLock,"r");
     if(!f){
-        printf("Server is not running !!!!");
+        printf("Server is not running !!!!\n");
         return 0;
     }
     fclose(f);
+        
+
+
 
     //get username from argv
     strcpy(username,argv[1]);
+    
+    //check for already logged user
+    if(access( username, F_OK ) != -1){
+        printf("User already loggen in\n");
+        return 0;
+    }
+    
     //login
     login();
     //run program
