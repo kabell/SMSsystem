@@ -4,7 +4,7 @@ C = gcc
 # compiler flags:
 #  -g    adds debugging information to the executable file
 #  -Wall turns on most, but not all, compiler warnings
-CFLAGS  = -std=gnu99 -Wall -Wextra -g
+CFLAGS  = -std=gnu99 -Wall -Wextra 
 
 
 DOXYGEN = doxygen
