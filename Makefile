@@ -4,7 +4,10 @@ C = gcc
 # compiler flags:
 #  -g    adds debugging information to the executable file
 #  -Wall turns on most, but not all, compiler warnings
-CFLAGS  = -std=gnu99 -Wall -Wextra
+CFLAGS  = -std=gnu99 -Wall -Wextra -g
+
+
+DOXYGEN = doxygen
 
 # the build target executable:
 
@@ -13,5 +16,8 @@ default: server client
 server: server.c
 client: client.c
 
+docs:
+	$(DOXYGEN) Doxyfile 
+
 clean:
-	$(RM) server client
+	$(RM) -rf server client login Doxyfile.bak html latex

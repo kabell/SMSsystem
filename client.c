@@ -1,3 +1,11 @@
+/**
+ * @file client.c
+ * @author Michal Korbela, Dávid Horov
+ * @date 13 May 2016
+ * @brief Implementation of client for SMS system
+ * @see https://github.com/kabell/SMSsystem
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,29 +16,33 @@
 #include <signal.h>
 #include <termios.h>
 
-//size of each used buffer
-#define BUFFER_SIZE 1000
 
-char buffer[BUFFER_SIZE];
+#define BUFFER_SIZE 1000            /**< Size of buffer for everything */
 
-//name of the named pipe used by server
-char * serverPipe = "serverin";
 
-//serverLock name
-char * serverLock = "server.lock";
+char * serverPipe = "serverin";     /**< Name of the named pipe used by server as input */
 
-//username and password
-char username[BUFFER_SIZE],password[BUFFER_SIZE];
-char * pass = NULL;
+char * serverLock = "server.lock";  /**< Name of file indicates if server is running */
 
-//stream for comuninacting with server
-FILE * server;
+char username[BUFFER_SIZE];         /**< Username of client */
+char password[BUFFER_SIZE];         /**< Password of client */
 
-//pid of the main process
-int mypid = 0;
+FILE * server;                      /**< Named pipe for communicating with server */
 
-//infinity loop - waiting for new messages
+int mypid = 0;                      /**< Pid of parent process */
+
+/**
+ * @brief Recieve requests from server
+ *
+ * Function is waiting for new messages in infinity loop, if the message is command to exit the program,
+ * function close input file and unlink the pipe and then sends SIGTERM signal to parents process.
+ *
+ */
+
 void receive_messages(){
+    
+    //buffer for input
+    char buffer[BUFFER_SIZE];
     
     //create named pipe for receiving messages
     mkfifo(username,0666);
@@ -44,6 +56,7 @@ void receive_messages(){
 
             //if message is command to exit program
             if(!strcmp(buffer,"Logged out.")){
+
                 printf("Exiting...\n");
                 //close all streams and named pipes and ask parent process to exit
                 fclose(in);
@@ -60,6 +73,13 @@ void receive_messages(){
         usleep(10000);
     }
 }
+
+/**
+ * @brief Read password from stanard input with prompt 
+ * @param message - Prompt
+ *
+ * Function stores pasword to global variable password
+ */
 
 void getpassword(char * message)
 {
@@ -89,12 +109,22 @@ void getpassword(char * message)
 
 }
 
-//login user to server
+/**
+ * @brief Login user to server
+ *
+ *  Functions tryes to log in user in the loop of maximum 3 tries
+ *  Firstly function loads password via function getpassword() and sends it to the server and waits for the answer recieved in pipe.
+ *  Then destroys and unlinks used pipe. In the end of the loop function checks if username and password are correct and finish, if not
+ *  user has 2 more attempts for log in, if user fails after third attempt acces is denied and program ends.
+ */
 void login(){
     
     int logged = 0;
     int tries = 0;
-
+    
+    //buffer for input
+    char buffer[BUFFER_SIZE];
+ 
     //while user is not logged in, try to repeat password
     while(!logged && tries<3){
 
@@ -134,7 +164,18 @@ void login(){
     }
 }
 
-// ask server for online users and print them
+/**
+ *
+ * @brief Ask server for all online users
+ *
+ * Function creates a pipe with the name of PID of actual process, then sends a query to the server in format:<br/>
+ * <pre>2|pipename</pre>
+ * After that function is waiting for the response from the server. Response (message) is in format "login1|login2|login3..." so function replace all 
+ * "|" characters to "\n" character. Then function prints the result and closes and unlinks the pipe.
+ *
+ */
+
+
 void query_online(){
     
     //create a new pipe with name of pid process(it is unique)
@@ -168,8 +209,16 @@ void query_online(){
     unlink(pipe_name);
 }
 
+/**
+ *
+ * @brief Send message to user(s)
+ *
+ * Function asks for username - send "TO". Then asks for message.
+ * If there aren't just 1 username, but multiple usernames separated by exactly one space, function parses whole line with delimiter space, and send message to all these users.
+ * Request server to send message to given users is in following format:
+ * <pre>3|from|to|message</pre> For every username separated by space.
+ */
 
-//send message to another user
 void query_send_message(){
 
     //ask for username
@@ -204,7 +253,13 @@ void query_send_message(){
 }
 
 
-//logout user
+/**
+ *
+ * @brief Ask server for logout
+ *
+ * Functions sends a request  to server via pipe that user wants to log out. The format of the query is <pre>4|userNameToLogout</pre>
+ *
+ */
 void query_logout(){
 
     //send query for logout to server
@@ -213,8 +268,25 @@ void query_logout(){
     fclose(server);
 }
 
-//this is main process that comunicate with user
-void main_process(){
+/**
+ *
+ * @brief Run client
+ *
+ * Functions creates 2 processes.
+ *  - Child proces is recieving messages via calling function receive_messages()
+ *  - Parents process writes to the console options for user then loads choosen option.
+ *      1. If option is 1 process calls function query_online() to list all logged in users
+ *      2. If option is 2 process calls function query_send_message() to send message to users
+ *      3. If option is 3 process calls function query_logout() to log out actual user
+ *      4. Else process informs user about bad option.
+ *      
+ *      Parents process is in the loop so after finishing one option user is asked again to choose an option and again,..
+ *
+ */
+
+
+
+void client_run(){
 
     //at first start receiving messages
     int pid = fork();
@@ -260,6 +332,17 @@ void main_process(){
 }
 
 
+/**
+ *
+ * @brief Main
+ *
+ * 1. Check if username is given as argument.
+ * 2. Check if server is running.
+ * 3. Try to login user via login()
+ * 4. Run client_run()
+ *
+ */
+
 
 int main(int argc, char ** argv){
 
@@ -293,6 +376,6 @@ int main(int argc, char ** argv){
     //login
     login();
     //run program
-    main_process();
+    client_run();
     return 0;
 }

@@ -1,37 +1,49 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
+/**
+ * @file server.c
+ * @author Michal Korbela, Dávid Horov
+ * @date 13 May 2016
+ * @brief Implementation of server for SMS system
+ * @see https://github.com/kabell/SMSsystem
+ */
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include<signal.h>
+#include <signal.h>
 #include <termios.h>
 
 
-#define SERVER_CAPACITY 10
-#define BUFFER_SIZE 1000
+#define SERVER_CAPACITY 1000    /**< Maximum number of users connected to server */
+#define BUFFER_SIZE 1000        /**< Maximum size of buffer for everything - messages, usernames, passwords, queries*/
 
 
-//struct for storing users
+/**
+ * Struct for storing users in memory
+ */
 typedef struct {
     char * username;
     char * password;
 } user_t;
 
-//name of named pipe for comunicating with server
-char * inPipe = "serverin";
+char * inPipe = "serverin";             /**< Name of named pipe for comunicating with server */
 
-//named pipe for input
-FILE * in = NULL;
+FILE * in = NULL;                       /**< Named pipe for server input */
 
-//file for identify running server
-char * serverLock = "server.lock";
+char * serverLock = "server.lock";      /**< If exist file with this name, an instance of server is running */
 
-//logged users
-user_t * users_logged[SERVER_CAPACITY];
+user_t * users_logged[SERVER_CAPACITY]; /**< Array for storing logged users in memory */
 
-
+/**
+ * @brief Read password from stanard input with prompt 
+ * @param message - Prompt
+ * @param password - String for store password - memory must be allocated before
+ *
+ */
 void getpassword(char * message, char * password)
 {
     printf("%s\n",message);
@@ -60,8 +72,13 @@ void getpassword(char * message, char * password)
 
 }
 
-
-//send any message to user
+/**
+ *  @brief Send message to client
+ *  @param user - Message will be send to this user
+ *  @param message - Message
+ *
+ *  Message is written to named pipe of target client. Name of the named pipe is same as username.
+ */
 void message_send(user_t * user, char * message){
     
     //message is send to same pipe as username
@@ -70,13 +87,20 @@ void message_send(user_t * user, char * message){
     fclose(out);
 }
 
-//authorize user
+/**
+ * @brief Check if given credentials are correct
+ * @param user - struct containing username and password for check
+ * @return 1 if credentials are valid 0 otherwise
+ *
+ * Function opens a file with all users and passwords and then it is trying to find given user in the file with all registered users.
+ * If we find a user we check if the password is the same as password given at registration if yes returns 1 else 0.
+ */
 int user_auth(user_t * user){
 
-    //file contained all accepted logins and password
+    //file contains all registered logins and passwords
     FILE * login = fopen("login","r");
 
-    //if file doesn't exist - no valid logins and password - credentials are wrong
+    //if file doesn't exist - there are no valid logins and password - credentials are wrong
     if(!login)
         return 0;
 
@@ -96,14 +120,27 @@ int user_auth(user_t * user){
 }
 
 
+/**
+ * @brief Login user to server
+ * @param user - User to be logged
+ * @return 1 if login was successful, 0 otherwise (server is full and there is no space for more users)
+ *
+ * Function finds a first free index in the array of users strucures, when it finds index we put that user to that index. If there is no free index, return 0.
+ *
+ */
+
 //login user - add user to list of logged in users
 int user_login(user_t * user){
     
     //find empty index
     int pos = 0;
-    while(users_logged[pos]){
+    while(pos<SERVER_CAPACITY && users_logged[pos]){
         pos++;
     }
+
+    //if there is no empty index - server is full
+    if(pos==SERVER_CAPACITY)
+        return 0;
    
     //put user to the empty space
     users_logged[pos] = user;
@@ -118,7 +155,14 @@ int user_login(user_t * user){
 
 }
 
-//logout user - delete user from list of logged in users
+/**
+ * @brief Logout user from server
+ * @param name - Username for logout
+ *
+ * Function finds a user which is given as name in the array of users structures and then it deletes user from that structure and frees all allocated memory.
+ * After successful logout, send message to client. Message is "Logged out.".
+ *
+ */
 void user_logout(char * name){
 
     //browse all logged users
@@ -142,7 +186,13 @@ void user_logout(char * name){
     }
 }
 
-//return all logged in users to user
+/**
+ * @brief - Send all online users to client
+ * @param pipename - Name of named pipe for output
+ *
+ * Write all online users to given named pipe. Pipe is named by pid of client process - which is unique. Usernames are separated by | (pipe) and added "- " before every username - for better reading at client side.
+ *
+ */
 void print_online(char * pipename){
 
     //name of named pipe is given, so open it
@@ -160,7 +210,35 @@ void print_online(char * pipename){
     fclose(pipe);
 }
 
-//given query/message from user, so decide what to do
+/**
+ * @brief Request for server is parsed by this function
+ * @param message - Request for server
+ *
+ * 
+ * Format of request should be valid otherwise you probably get SEGFAULT
+ *
+ * There are 4 types of request
+ *
+ * 1. <b>Request for login</b><br/>
+ * Format: <pre>1|username|password</pre>
+ * Username and password are stored in memory. After that server is trying to authenticate user via user_auth() and log in user via user_login().<br/>
+ * If credentials are invalid, or login was unsuccessful - client recieves a message about it by function message_send().
+ *
+ * 2. <b>Request for online users</b><br/>
+ * Format: <pre>2|pipename</pre>
+ * @see print_online
+ *
+ * 3. <b>Redirect message from client</b><br/>
+ * Format: <pre>3|from|to|message</pre>
+ * Server send message using function message_send() to client "to" of format "from" -> message
+ *
+ * 4. <b>Request for logout user</b><br/>
+ * Format: <pre>4|username</pre>
+ * Logout user with given username
+ * @see user_logout
+ *
+ */
+
 void server_parse_input(char * message){
 
     //if query is empty... do nothing
@@ -190,9 +268,9 @@ void server_parse_input(char * message){
 
         //authentificate used
         if(user_auth(user)){
-            //and log in him
+            //and log in
             if(!user_login(user)){
-                message_send(user,"User already logged in\n");
+                message_send(user,"Server is full !!!\n");
             }
         }
         //wrong credentials
@@ -280,7 +358,11 @@ void server_parse_input(char * message){
 
 }
 
-//quit server - send message to all logged users - to force log out
+/**
+ * @brief Terminate server
+ *
+ * At first all logged users are logged out (commands to quit clients are included). Then clean free all used memory, delete all used files and terminate server.
+ */
 void server_quit(){
 
     for(int i=0; i<SERVER_CAPACITY; i++){
@@ -309,8 +391,15 @@ void server_quit(){
 }
 
 
-
-//initialize server
+/**
+ *
+ * @brief Initialize server
+ *
+ * Set terminate behaviour - when the server is asked to terminate, run server_quit() - for clean environment.<br/>
+ * Create and open named pipe for server requests.<br/>
+ * Prepare memory for logged users.
+ *
+ */
 void server_init(){
     
     //add signal for quit when q is pressed in the another process
@@ -328,7 +417,13 @@ void server_init(){
     }
 }
 
-//run server - waiting for queries from pipe
+/**
+ *
+ * @brief Process all requests in input
+ * 
+ * Requests for server are written to named pipe "serverin" one per line. So server read input line by line and process using this way all requests.
+ * Queries are processed by server_parse_input()
+ */
 void server_run(){
     //processign queries
     char buffer[BUFFER_SIZE];
@@ -336,13 +431,22 @@ void server_run(){
         if(fgets(buffer,BUFFER_SIZE,in)!=NULL){
             server_parse_input(buffer);
         }
-
         //prevent for heavy use of CPU - optional
         usleep(10000);
     }
 }
 
-
+/**
+ *
+ * @brief Main function
+ *
+ * Server has 2 modes:
+ * 1. <b>Registration mode</b><br/>
+ * If server is run with exactly 2 argiments. Second argument is considered as username for register. At first server check if the username isn't already registered. If no, server asks for password 3 times using getpassword(). If passwords are equal server write username and password to login file - each per line. So all odd lines contain usernames and even lines contain passwords - numbering from 1
+ * 
+ * 2. <b>Normal mode</b><br/>
+ * At first server checks if there is no instance of server running. After server creates a file "server.lock" (used to prevent multiple instances of running servers) and server forks - parent process is waiting for commands from commandline, and the child process run server_init() and server_run()
+ */
 
 
 
@@ -367,14 +471,9 @@ int main(int argc, char ** argv){
                     fclose(login_file);
                     return 0;
                 }
-                    
             }
-
-
-
             fclose(login_file);
         }
-
 
         char password[BUFFER_SIZE],password1[BUFFER_SIZE];
 
