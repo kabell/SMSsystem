@@ -37,9 +37,9 @@
 
     2. Register users if they are not registered yet.
 
-        ./server adduser <i>username<\i>
+        ./server adduser _username_
         
-        <i>username<\i> is login for user.
+        _username_ is login for user.
         
        Then, you are asked to input the user's password and confirmed the password. If the two passwords are the 
         
@@ -47,9 +47,9 @@
 
     3. Run as many clients as you want (limited by server capacity in server.c, which is 1000 users)
 
-        ./client  <i>username<\i>
+        ./client  _username_
 
-        The  <i>username<\i> is stored in the server, which must be registered before using it in the server.
+        The  _username_ is stored in the server, which must be registered before using it in the server.
 
         You have 3 attempts to type the password. After the third wrong attempt the program will end.
 
@@ -96,7 +96,7 @@
 
 9. Flow Diagram
 
-    <img src="../schema.png"/>
+    <img src="../Diagram1.png"/>
         
  
 
