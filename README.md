@@ -76,15 +76,17 @@
     
         For example:
         - Shell: Message send to(write username): 
-        - User: login1 login2 login3 
+        - User: login1 login2 login3
+    
+    2. If you send a message to offline/unknown user message is ignored and it is not delivered. 
 
-    2. Hidden passwords.
+    3. Hidden passwords.
     When user type a password to log in, you can not see how many characters his/her password has. This is for safety reasons.
 
-    3. Multiple registration login not allowed.
+    4. Multiple registration login not allowed.
     You can not register user with the same login and different password. Each user has a unique login.
 
-    4. One client console login allowed.
+    5. One client console login allowed.
     You can not log in the same user to more than one console. Like real SMS system (You do not have 2 sim cards for one number)
     
 8. Restrictions:

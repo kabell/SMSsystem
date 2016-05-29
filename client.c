@@ -1,6 +1,6 @@
 /**
  * @file client.c
- * @author Michal Korbela, DÃ¡vid Horov
+ * @author Michal Korbela, Dávid Horov
  * @date 13 May 2016
  * @brief Implementation of client for SMS system
  * @see https://github.com/kabell/SMSsystem
@@ -22,7 +22,7 @@
 
 char * serverPipe = "serverin";     /**< Name of the named pipe used by server as input */
 
-char * serverLock = "server.lock";  /**< Name of file indicates if server is running */
+char * serverLock = "server.lock";  /**< Name of the file indicates if server is running */
 
 char username[BUFFER_SIZE];         /**< Username of client */
 char password[BUFFER_SIZE];         /**< Password of client */
@@ -35,7 +35,7 @@ int mypid = 0;                      /**< Pid of parent process */
  * @brief Recieve requests from server
  *
  * Function is waiting for new messages in infinity loop, if the message is command to exit the program,
- * function close input file and unlink the pipe and then sends SIGTERM signal to parents process.
+ * function closes input file and unlinks the pipe and then sends SIGTERM signal to parent´s process.
  *
  */
 
@@ -54,7 +54,7 @@ void receive_messages(){
         //if there is a new message
         if(fgets(buffer,BUFFER_SIZE,in)!=NULL){
 
-            //if message is command to exit program
+            //if message is a command to exit program
             if(!strcmp(buffer,"Logged out.")){
 
                 printf("Exiting...\n");
@@ -78,7 +78,7 @@ void receive_messages(){
  * @brief Read password from stanard input with prompt 
  * @param message - Prompt
  *
- * Function stores pasword to global variable password
+ * Function stores password to global variable password
  */
 
 void getpassword(char * message)
@@ -88,14 +88,14 @@ void getpassword(char * message)
     int i = 0;
     int c;
 
-    //saving the old settings of STDIN_FILENO and copy settings for resetting
+    //saving the old settings of STDIN_FILENO and copy settings for reseting
     tcgetattr( STDIN_FILENO, &oldt);
     newt = oldt;
 
     //setting the approriate bit in the termios struct
     newt.c_lflag &= ~(ECHO);          
 
-    //setting the new bits
+    //setting new bits
     tcsetattr( STDIN_FILENO, TCSANOW, &newt);
 
     //reading the password from the console
@@ -104,7 +104,7 @@ void getpassword(char * message)
     }
     password[i] = '\0';
 
-    /*resetting our old STDIN_FILENO*/ 
+    /*reseting our old STDIN_FILENO*/ 
     tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
 
 }
@@ -112,9 +112,9 @@ void getpassword(char * message)
 /**
  * @brief Login user to server
  *
- *  Functions tryes to log in user in the loop of maximum 3 tries
+ *  Function tries to log in user in the loop of maximum 3 tries
  *  Firstly function loads password via function getpassword() and sends it to the server and waits for the answer recieved in pipe.
- *  Then destroys and unlinks used pipe. In the end of the loop function checks if username and password are correct and finish, if not
+ *  Then destroys and unlinks used pipe. In the end of the loop function checks if the username and password are correct and finish, if not
  *  user has 2 more attempts for log in, if user fails after third attempt acces is denied and program ends.
  */
 void login(){
@@ -149,8 +149,7 @@ void login(){
         unlink(username);
 
         //if username and password are correct
-        if(strcmp(buffer,"1")==0){
-            printf("Login OK.\n");
+        if(strcmp(buffer,"Login OK")==0){
             logged = 1;
         }
         //if not
@@ -159,7 +158,7 @@ void login(){
         tries++;
     }
     if(!logged && tries==3){
-        printf("Acces denied !!");
+        printf("Acces denied !!\n");
         exit(0);
     }
 }
@@ -213,8 +212,8 @@ void query_online(){
  *
  * @brief Send message to user(s)
  *
- * Function asks for username - send "TO". Then asks for message.
- * If there aren't just 1 username, but multiple usernames separated by exactly one space, function parses whole line with delimiter space, and send message to all these users.
+ * Function asks for username - send "TO". Then asks for a message.
+ * If there ia not just 1 username, but multiple usernames separated by exactly one space, function parses whole line with delimiter-space, and sends message to all these users.
  * Request server to send message to given users is in following format:
  * <pre>3|from|to|message</pre> For every username separated by space.
  */
