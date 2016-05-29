@@ -1,6 +1,6 @@
 /**
  * @file server.c
- * @author Michal Korbela, Dávid Horov
+ * @author Michal Korbela, DÃ¡vid Horov
  * @date 13 May 2016
  * @brief Implementation of server for SMS system
  * @see https://github.com/kabell/SMSsystem
@@ -18,7 +18,7 @@
 #include <termios.h>
 
 
-#define SERVER_CAPACITY 1000    /**< Maximum number of users connected to theserver */
+#define SERVER_CAPACITY 1000    /**< Maximum number of users connected to server */
 #define BUFFER_SIZE 1000        /**< Maximum size of buffer for everything - messages, usernames, passwords, queries*/
 
 
@@ -41,7 +41,7 @@ user_t * users_logged[SERVER_CAPACITY]; /**< Array for storing logged users in m
 /**
  * @brief Read password from stanard input with prompt 
  * @param message - Prompt
- * @param password - String for storing password - memory must be allocated before
+ * @param password - String for store password - memory must be allocated before
  *
  */
 void getpassword(char * message, char * password)
@@ -51,7 +51,7 @@ void getpassword(char * message, char * password)
     int i = 0;
     int c;
 
-    //saving the old settings of STDIN_FILENO and copy settings for reseting
+    //saving the old settings of STDIN_FILENO and copy settings for resetting
     tcgetattr( STDIN_FILENO, &oldt);
     newt = oldt;
 
@@ -67,7 +67,7 @@ void getpassword(char * message, char * password)
     }
     password[i] = '\0';
 
-    /*reseting our old STDIN_FILENO*/
+    /*resetting our old STDIN_FILENO*/
     tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
 
 }
@@ -230,7 +230,7 @@ void print_online(char * pipename){
  *
  * 3. <b>Redirect message from client</b><br/>
  * Format: <pre>3|from|to|message</pre>
- * Server sends message using function message_send() to client "to" of format "from" -> message
+ * Server send message using function message_send() to client "to" of format "from" -> message
  *
  * 4. <b>Request for logout user</b><br/>
  * Format: <pre>4|username</pre>
@@ -361,7 +361,7 @@ void server_parse_input(char * message){
 /**
  * @brief Terminate server
  *
- * At first all logged users are logged out (commands to quit clients are included). Then frees all used memory, deletes all used files and terminates server.
+ * At first all logged users are logged out (commands to quit clients are included). Then clean free all used memory, delete all used files and terminate server.
  */
 void server_quit(){
 
@@ -442,7 +442,7 @@ void server_run(){
  *
  * Server has 2 modes:
  * 1. <b>Registration mode</b><br/>
- * If server is run with exactly 2 arguments. Second argument is considered as username for register. At first server check if the username isn't already registered. If no, server asks for password 3 times using getpassword(). If passwords are equal server writes username and password to login file - each per line. So all odd lines contain usernames and even lines contain passwords - numbering from 1
+ * If server is run with exactly 2 argiments. Second argument is considered as username for register. At first server check if the username isn't already registered. If no, server asks for password 3 times using getpassword(). If passwords are equal server write username and password to login file - each per line. So all odd lines contain usernames and even lines contain passwords - numbering from 1
  * 
  * 2. <b>Normal mode</b><br/>
  * At first server checks if there is no instance of server running. After server creates a file "server.lock" (used to prevent multiple instances of running servers) and server forks - parent process is waiting for commands from commandline, and the child process run server_init() and server_run()
