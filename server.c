@@ -112,9 +112,12 @@ int user_auth(user_t * user){
         password[strlen(password)-1]='\0';
         
         //if we found suitable username and password credentials are OK
-        if(!strcmp(user->username,username) && !strcmp(user->password,password))
-            return 1;
+        if(!strcmp(user->username,username) && !strcmp(user->password,password)){
+            fclose(login);
+           return 1;
+        }
     }
+    fclose(login);
     //we didn't find given login and password
     return 0;
 }
@@ -201,8 +204,9 @@ void print_online(char * pipename){
     //list all logged in users
     for(int i=0; i<SERVER_CAPACITY; i++){
         //if this is logged in user, print him to the named pipe
-        if(users_logged[i])
+        if(users_logged[i]){
             fprintf(pipe,"|- %s",users_logged[i]->username);
+        }
     }
     
     //print newline and close the pipe
@@ -271,13 +275,18 @@ void server_parse_input(char * message){
             //and log in
             if(!user_login(user)){
                 message_send(user,"Server is full !!!\n");
+                free(user->username);
+                free(user->password);
+                free(user);
             }
         }
         //wrong credentials
         else{
             message_send(user,"Login incorrect\n");
+            free(user->username);
+            free(user->password);
+            free(user);
         }
-
     }
 
 
