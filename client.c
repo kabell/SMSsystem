@@ -1,6 +1,6 @@
 /**
  * @file client.c
- * @author Michal Korbela, Dávid Horov
+ * @author Michal Korbela, Dvid Horov
  * @date 13 May 2016
  * @brief Implementation of client for SMS system
  * @see https://github.com/kabell/SMSsystem
@@ -35,7 +35,7 @@ int mypid = 0;                      /**< Pid of parent process */
  * @brief Recieve requests from server
  *
  * Function is waiting for new messages in infinity loop, if the message is command to exit the program,
- * function closes input file and unlinks the pipe and then sends SIGTERM signal to parent´s process.
+ * function closes input file and unlinks the pipe and then sends SIGTERM signal to parents process.
  *
  */
 

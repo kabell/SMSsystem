@@ -1,6 +1,6 @@
 /**
  * @file server.c
- * @author Michal Korbela, Dávid Horov
+ * @author Michal Korbela, Dvid Horov
  * @date 13 May 2016
  * @brief Implementation of server for SMS system
  * @see https://github.com/kabell/SMSsystem
